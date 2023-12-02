@@ -110,8 +110,8 @@ class RLF110Env(F110Env):
             self.times = 40*np.ones((int(self.track.track_length)+1,))
             self.last_visited_times = -1*np.ones((int(self.track.track_length)+1,))
 
-        self.obs_dict = self.create_obs_dict()
-        self.last_obs_dict = {}
+        # self.obs_dict = self.create_obs_dict()
+        # self.last_obs_dict = {}
         self.is_reset = False
 
     def step(self, action):
@@ -140,8 +140,12 @@ class RLF110Env(F110Env):
             obs, reward = self.get_frenet_obs(obs, reward, action)
             info_obs = {'bad_obs': False}
         elif self._observation_type == 'Frenet_trajectory':
-            obs, reward, info_obs = self.get_frenet_traj_obs(obs, reward, norm_action, action)
+            orig_obs = obs.copy()
+            obs, reward, info_obs, obs_dict = self.get_frenet_traj_obs(obs, reward, norm_action, action)
             if np.isnan(obs).any():
+                print("action", action)
+                print(obs_dict)
+                print(orig_obs)
                 raise ValueError("Nans observed in the observation!")
         else:
             if self._observation_type != "original":
@@ -149,8 +153,8 @@ class RLF110Env(F110Env):
             obs, reward = self.get_orig_obs(obs, action, reward)
             info_obs = {'bad_obs': False}
 
-        if self.visualize:
-            self.save_obs_dict(obs)
+        # if self.visualize:
+        #     self.save_obs_dict(obs)
 
         if info_obs['bad_obs']:
             # interrupt sim if the observation is not valid
@@ -159,7 +163,7 @@ class RLF110Env(F110Env):
 
         return obs, reward, done, info
 
-    def reset(self, poses=-1):
+    def reset(self, poses=-1, seed=None):
         """
         Resets the RL Environment and performs an env step.
         Poses=-1 because the official F110 Env expects a pose, which is against OpenAI standards.
@@ -232,10 +236,10 @@ class RLF110Env(F110Env):
         action = np.zeros((self.num_agents, 2))
         obs, *_ = self.step(action)
 
-        if self.visualize:
-            self.is_reset = True
-            self.last_obs_dict = self.obs_dict.copy()
-            self.obs_dict = self.create_obs_dict()
+        # if self.visualize:
+        #     self.is_reset = True
+        #     self.last_obs_dict = self.obs_dict.copy()
+        #     self.obs_dict = self.create_obs_dict()
 
         return obs
 
@@ -363,11 +367,13 @@ class RLF110Env(F110Env):
             keys = ['deviation', 'rel_heading', 'longitudinal_vel', 'later_vel', 'yaw_rate'] # uncomment this line to remove the lidar
         new_obs_norm_vec = np.concatenate([new_obs_norm[key] for key in keys], axis=None).astype(np.float32)
         new_obs_final = np.concatenate((trajectory_norm, new_obs_norm_vec, norm_action), axis=None)
+
+        new_obs_norm["trajectory"] = trajectory_norm
         
         # TODO why is this here??    
         self.prev_action = action
 
-        return new_obs_final, reward, info_obs
+        return new_obs_final, reward, info_obs, new_obs_norm
 
     def normalize_obs(self, obs):
         return normalisation.normalise_observation(obs, self.params)

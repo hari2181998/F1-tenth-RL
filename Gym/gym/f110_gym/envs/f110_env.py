@@ -137,6 +137,7 @@ class F110Env(gym.Env, utils.EzPickle):
 
         try:
             self.params = kwargs['params']
+            print(self.params)
         except:
             try:
                 self.params = {
@@ -399,7 +400,7 @@ class F110Env(gym.Env, utils.EzPickle):
     def get_ep_len(self):
         return self._max_episode_length
 
-    def reset(self, poses=-1):
+    def reset(self, poses=-1, seed=None):
         """
         Reset the gym environment by given poses
 

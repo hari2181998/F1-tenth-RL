@@ -164,7 +164,7 @@ class RaceCar(object):
         """
         self.scan_simulator.set_map(map_path, map_ext)
 
-    def reset(self, pose):
+    def reset(self, pose, seed=None):
         """
         Resets the vehicle to a pose
         
@@ -266,7 +266,28 @@ class RaceCar(object):
         accl, sv = pid(vel, steer, self.state[3], self.state[2], self.params['sv_max'], self.params['a_max'], self.params['v_max'], self.params['v_min'])
         
         # update physics, get RHS of diff'eq
-        f = vehicle_dynamics_st(
+        # f = vehicle_dynamics_st(
+        #     self.state,
+        #     np.array([sv, accl]),
+        #     self.params['mu'],
+        #     self.params['C_Sf'],
+        #     self.params['C_Sr'],
+        #     self.params['lf'],
+        #     self.params['lr'],
+        #     self.params['h'],
+        #     self.params['m'],
+        #     self.params['I'],
+        #     self.params['s_min'],
+        #     self.params['s_max'],
+        #     self.params['sv_min'],
+        #     self.params['sv_max'],
+        #     self.params['v_switch'],
+        #     self.params['a_max'],
+        #     self.params['v_min'],
+        #     self.params['v_max'],
+        #     slow_threshold=self.slow_threshold)
+
+        k1 = vehicle_dynamics_st(
             self.state,
             np.array([sv, accl]),
             self.params['mu'],
@@ -284,11 +305,79 @@ class RaceCar(object):
             self.params['v_switch'],
             self.params['a_max'],
             self.params['v_min'],
-            self.params['v_max'],
-            slow_threshold=self.slow_threshold)
+            self.params['v_max'])
+
+        k2_state = self.state + self.time_step*(k1/2)
+
+        k2 = vehicle_dynamics_st(
+            k2_state,
+            np.array([sv, accl]),
+            self.params['mu'],
+            self.params['C_Sf'],
+            self.params['C_Sr'],
+            self.params['lf'],
+            self.params['lr'],
+            self.params['h'],
+            self.params['m'],
+            self.params['I'],
+            self.params['s_min'],
+            self.params['s_max'],
+            self.params['sv_min'],
+            self.params['sv_max'],
+            self.params['v_switch'],
+            self.params['a_max'],
+            self.params['v_min'],
+            self.params['v_max'])
+
+        k3_state = self.state + self.time_step*(k2/2)
+
+        k3 = vehicle_dynamics_st(
+            k3_state,
+            np.array([sv, accl]),
+            self.params['mu'],
+            self.params['C_Sf'],
+            self.params['C_Sr'],
+            self.params['lf'],
+            self.params['lr'],
+            self.params['h'],
+            self.params['m'],
+            self.params['I'],
+            self.params['s_min'],
+            self.params['s_max'],
+            self.params['sv_min'],
+            self.params['sv_max'],
+            self.params['v_switch'],
+            self.params['a_max'],
+            self.params['v_min'],
+            self.params['v_max'])
+
+        k4_state = self.state + self.time_step*k3
+
+        k4 = vehicle_dynamics_st(
+            k4_state,
+            np.array([sv, accl]),
+            self.params['mu'],
+            self.params['C_Sf'],
+            self.params['C_Sr'],
+            self.params['lf'],
+            self.params['lr'],
+            self.params['h'],
+            self.params['m'],
+            self.params['I'],
+            self.params['s_min'],
+            self.params['s_max'],
+            self.params['sv_min'],
+            self.params['sv_max'],
+            self.params['v_switch'],
+            self.params['a_max'],
+            self.params['v_min'],
+            self.params['v_max'])
+
+            # dynamics integration
+        self.state = self.state + self.time_step*(1/6)*(k1 + 2*k2 + 2*k3 + k4)
 
         # update state
-        self.state = self.state + f * self.time_step
+        # self.state = self.state + f * self.time_step
 
         # bound yaw angle
         if self.state[4] > 2*np.pi:
@@ -556,7 +645,7 @@ class Simulator(object):
 
         return observations
 
-    def reset(self, poses):
+    def reset(self, poses, seed=None):
         """
         Resets the simulation environment by given poses
 

@@ -40,7 +40,6 @@ def train(env_conf, continue_training=False):
             int(time.time()),
         ),
         project=project,
-        entity="forzapbl",
         config=env_conf,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         monitor_gym=True,  # auto-upload the videos of agents playing the game
@@ -165,6 +164,7 @@ def init_confs(
     
     with open(os.path.join(configs_dir, "car_params.yaml".format(map))) as file:
         params = yaml.safe_load(file)
+    print(params)
 
     env_conf = {
         "mode": mode,
