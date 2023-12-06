@@ -20,11 +20,11 @@ import cl_parser
 # paths
 dir_path = pathlib.Path(__file__).resolve().parents[1]
 configs_dir = os.path.join(dir_path, "cfg")
-model_dir = os.path.join(dir_path, "models/jfr/fastcar/FINAL")
+model_dir = os.path.join(dir_path, "models/jfr/fastcar/FINAL_multi_agent")
 
 
 def train(env_conf, continue_training=False):
-    model_name = "model_{}_SAC_{}_noise_{}".format(
+    model_name = "model_multi_agent{}_SAC_{}_noise_{}".format(
         env_conf["map_name"], env_conf["obs_type"], str(env_conf["params_noise"])
     )
 
@@ -79,16 +79,13 @@ def train(env_conf, continue_training=False):
             device="cpu"
         )
     else:
-        model = SAC(
-            wandb.config.policy_type,
-            env,
-            verbose=1,
-            tensorboard_log="runs/{}".format(run.name),
-            batch_size=64,
-            device="cpu",
-            train_freq=1,
-            # reg_matrix = env_conf['output_reg']
-            )
+        model = SAC.load(wandb.config.single_trained_model_path, 
+                         env=env, 
+                         verbose=1, 
+                         tensorboard_log="runs/{}".format(run.name),
+                         batch_size=64,
+                         device="cpu",
+                         train_freq=1)
 
     # CALLBACKS
     wandb_callback = WandbCallback(
@@ -117,14 +114,14 @@ def train(env_conf, continue_training=False):
         eval_env,
         best_model_save_path=os.path.join(model_dir, model_name + "/"),
         log_path=os.path.join(model_dir, model_name + "/logs/"),
-        eval_freq=wandb.config.total_timesteps / (100),
+        eval_freq=wandb.config.total_timesteps / (40),
         deterministic=True,
-        render=True,
+        render=False,
         n_eval_episodes=1,
     )
     metrics_callback = MetricEvalCallback(
         eval_env,
-        eval_freq=wandb.config.total_timesteps / (40),
+        eval_freq=wandb.config.total_timesteps / (200),
         wandb_run = run,
         )
     
@@ -176,7 +173,7 @@ def init_confs(
         "sx": conf.sx,
         "sy": conf.sy,
         "stheta": conf.stheta,
-        "num_agents": 1,
+        "num_agents": 2,
         "ep_len": ep_len,  # this sets the maximum episode length, it is ~1.5 times the best time for a lap, so it changes from track to track
         "obs_type": mode,
         "params_noise": params_noise,
@@ -192,11 +189,12 @@ def init_confs(
         "policy_type": "MlpPolicy",
         "total_timesteps": .5e6,
         "gamma": 0.99,
-        "env_id":"f110_gym:f110rl-v0",
+        "env_id":"f110_gym:f110rlmulti-v0",
         "use_lidar":True,
         "action_pen":0.01,
         "params":params,
-        "output_reg":np.diag([0.0, 0.0]) # steer action, throttle action
+        "output_reg":np.diag([0.0, 0.0]), # steer action, throttle action,
+        "single_trained_model_path": "/home/hari/Documents/CMU_masters/irl_ws/src/TC-Driver/TC_Driver/models/jfr/fastcar/FINAL/model_f_SAC_Frenet_trajectory_noise_True/best_model.zip"
     }
     return env_conf
 

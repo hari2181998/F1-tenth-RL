@@ -18,3 +18,8 @@ register(
 	id='f110rldirect-v0',
 	entry_point='f110_gym.envs:RLF110EnvDirect',
 	)
+
+register(
+    id='f110rlmulti-v0',
+    entry_point='f110_gym.envs:RLF110MultiAgentEnv',
+)

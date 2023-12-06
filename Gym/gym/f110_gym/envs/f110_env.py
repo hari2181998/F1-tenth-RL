@@ -331,16 +331,18 @@ class F110Env(gym.Env, utils.EzPickle):
             if self.toggle_list[i] < 4:
                 self.lap_times[i] = self.current_time
         
-        done = (self.collisions[self.ego_idx]) or np.all(self.toggle_list >= 2) or self._cur_step >= self._max_episode_length
+        done = (self.collisions[self.ego_idx]) or np.any(self.toggle_list >= 2) or (self.collisions[self.opp_idx]) or self._cur_step >= self._max_episode_length
         #done = self.collisions[self.ego_idx] # <- modification only to make the env done when the car crashes, and not when 2 laps are done
         if self.collisions[self.ego_idx]:
-            logging.info("Episode terminated because of collision")
-        elif np.all(self.toggle_list >= 2):
+            logging.info("Episode terminated because of collision of ego car")
+        elif np.any(self.toggle_list >= 2):
             logging.info("Episode terminated because of total number of laps completed reached maximum")
         elif self._cur_step >= self._max_episode_length:
             logging.info("Episode terminated because of reaching maximum episode length")
+        elif self.collisions[self.opp_idx]:
+            logging.info("Episode terminated because of collision of opponent car")
 
-        return bool(done), np.all(self.toggle_list >= 2)
+        return bool(done), np.any(self.toggle_list >= 2)
 
     def _update_state(self, obs_dict):
         """
@@ -532,7 +534,7 @@ class F110Env(gym.Env, utils.EzPickle):
                 return reward
             
             elif rew_type == 'adv':
-                return get_reward_adv(self.theta, self.prev_theta)
+                return get_reward_adv(self.thetas[self.ego_idx], self.prev_theta)
             
             elif rew_type == 'advel':
                 return get_reward_adv(self.theta, self.prev_theta)*get_reward_vel(self.sim, self.ego_idx)
@@ -548,6 +550,9 @@ class F110Env(gym.Env, utils.EzPickle):
                 adv_rew = get_reward_adv(self.theta, self.prev_theta)
                 vel_rew = get_reward_vel(self.sim, self.ego_idx)
                 return 100*adv_rew + vel_rew + safety_rew
+            
+            elif rew_type == "adv_opp":
+                return get_reward_adv_opp(self.thetas[self.ego_idx], self.prev_theta, self.thetas[self.opp_idx])
             
             else:
                 raise NotImplementedError("Reward type not implemented")

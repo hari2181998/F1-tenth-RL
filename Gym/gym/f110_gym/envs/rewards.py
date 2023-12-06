@@ -75,7 +75,10 @@ def get_reward_adv(theta, prev_theta):
     """
     Returns the advancement of last timestep calculated along the central line
     """
-    return (theta - prev_theta) 
+    return (theta - prev_theta)
+
+def get_reward_adv_opp(theta, prev_theta,opp_theta):
+    return (theta-prev_theta) + (theta - opp_theta)
 
 def get_pseudocurr_reward(time_rew, speed_rew, adv_rew, sim, ego_idx):
     """
